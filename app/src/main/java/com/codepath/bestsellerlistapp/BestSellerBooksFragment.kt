@@ -53,28 +53,34 @@ class BestSellerBooksFragment : Fragment(), OnListFragmentInteractionListener {
     private fun updateAdapter(progressBar: ContentLoadingProgressBar, recyclerView: RecyclerView) {
         progressBar.show()
 
-    // Create and set up an AsyncHTTPClient() here
+        // Create and set up an AsyncHTTPClient() here
         val client = AsyncHttpClient()
         val params = RequestParams()
+        // Using the client, perform the HTTP request
+        params["limit"] = "5"
+        params["page"] = "0"
         params["api-key"] = API_KEY
 
-    // Using the client, perform the HTTP request
-        client[
-                "https://api.nytimes.com/svc/books/v3/lists/current/hardcover-fiction.json",
-                params,
-                object : JsonHttpResponseHandler()
-
-        //Uncomment me once you complete the above sections!
-        {
-            /*
-             * The onSuccess function gets called when
-             * HTTP response status is "200 OK"
-             */
-            override fun onSuccess(
+        client["https://api.nytimes.com/svc/books/v3/lists/current/hardcover-fiction.json", params, object :
+            JsonHttpResponseHandler() {
+            override fun onFailure(
                 statusCode: Int,
                 headers: Headers?,
-                json: JSON
+                response: String?,
+                throwable: Throwable?
             ) {
+                // The wait for a response is over
+                progressBar.hide()
+
+                // If the error is not null, log it!
+                throwable?.message?.let {
+                    if (response != null) {
+                        Log.e("BestSellerBooksFragment", response)
+                    }
+                }
+            }
+
+            override fun onSuccess(statusCode: Int, headers: Headers?, json: JSON?) {
                 // The wait for a response is over
                 progressBar.hide()
 
@@ -83,38 +89,20 @@ class BestSellerBooksFragment : Fragment(), OnListFragmentInteractionListener {
                 val resultsJSON : JSONObject = json?.jsonObject?.get("results") as JSONObject
                 val booksRawJSON : String = resultsJSON.get("books").toString()
 
-                // Add gson and import library
-                val gson = Gson()
-
-                // Create a val to call an object within the type token for the best seller book
+                // type used to covert to
                 val arrayBookType = object : TypeToken<List<BestSellerBook>>() {}.type
 
-                // We can't call a null value, so we need
-                val models : List<BestSellerBook> = gson.fromJson(booksRawJSON, arrayBookType) // Fix me!
-                recyclerView.adapter = BestSellerBooksRecyclerViewAdapter(models, this@BestSellerBooksFragment)
+                val gson = Gson()
+                val models: List<BestSellerBook> = gson.fromJson(booksRawJSON, arrayBookType)
+
+                recyclerView.adapter =
+                    BestSellerBooksRecyclerViewAdapter(models, this@BestSellerBooksFragment)
 
                 // Look for this in Logcat:
                 Log.d("BestSellerBooksFragment", "response successful")
             }
 
-            /*
-             * The onFailure function gets called when
-             * HTTP response status is "4XX" (eg. 401, 403, 404)
-             */
-            override fun onFailure(
-                statusCode: Int,
-                headers: Headers?,
-                errorResponse: String,
-                t: Throwable?
-            ) {
-                // The wait for a response is over
-                progressBar.hide()
 
-                // If the error is not null, log it!
-                t?.message?.let {
-                    Log.e("BestSellerBooksFragment", errorResponse)
-                }
-            }
         }]
     }
 
